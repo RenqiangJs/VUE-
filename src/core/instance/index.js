@@ -6,6 +6,7 @@ import { lifecycleMixin } from './lifecycle'
 import { warn } from '../util/index'
 
 function Vue (options) {
+  // 用安全模式提醒必须要以new操作符调用vue构造函数
   if (process.env.NODE_ENV !== 'production' &&
     !(this instanceof Vue)
   ) {

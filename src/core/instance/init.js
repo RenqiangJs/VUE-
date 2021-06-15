@@ -14,59 +14,64 @@ let uid = 0
 
 export function initMixin (Vue: Class<Component>) {
   Vue.prototype._init = function (options?: Object) {
-    const vm: Component = this
+    const vm: Component = this;
     // a uid
-    vm._uid = uid++
+    vm._uid = uid++;
 
-    let startTag, endTag
+    // 两个if（process.env.NODE_ENV !== 'production' && config.performance && mark）之间的代码即为
+    // 性能追踪的全部代码
+    let startTag, endTag;
     /* istanbul ignore if */
-    if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
-      startTag = `vue-perf-start:${vm._uid}`
-      endTag = `vue-perf-end:${vm._uid}`
-      mark(startTag)
+    if (process.env.NODE_ENV !== "production" && config.performance && mark) {
+      // 性能追踪开始
+      startTag = `vue-perf-start:${vm._uid}`;
+      endTag = `vue-perf-end:${vm._uid}`;
+      mark(startTag);
     }
 
     // a flag to avoid this being observed
-    vm._isVue = true
+    vm._isVue = true;
     // merge options
+    // options._isComponent是一个内部选项，在new vue实例的时候不会传递该选项，因此会走else逻辑
     if (options && options._isComponent) {
       // optimize internal component instantiation
       // since dynamic options merging is pretty slow, and none of the
       // internal component options needs special treatment.
-      initInternalComponent(vm, options)
+      initInternalComponent(vm, options);
     } else {
       vm.$options = mergeOptions(
         resolveConstructorOptions(vm.constructor),
         options || {},
         vm
-      )
+      );
     }
     /* istanbul ignore else */
-    if (process.env.NODE_ENV !== 'production') {
-      initProxy(vm)
+    if (process.env.NODE_ENV !== "production") {
+      initProxy(vm);
     } else {
-      vm._renderProxy = vm
+      vm._renderProxy = vm;
     }
     // expose real self
-    vm._self = vm
-    initLifecycle(vm)
-    initEvents(vm)
-    initRender(vm)
-    callHook(vm, 'beforeCreate')
-    initInjections(vm) // resolve injections before data/props
-    initState(vm)
-    initProvide(vm) // resolve provide after data/props
-    callHook(vm, 'created')
+    vm._self = vm;
+    initLifecycle(vm);
+    initEvents(vm);
+    initRender(vm);
+    callHook(vm, "beforeCreate");
+    initInjections(vm); // resolve injections before data/props
+    initState(vm);
+    initProvide(vm); // resolve provide after data/props
+    callHook(vm, "created");
 
     /* istanbul ignore if */
-    if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
-      vm._name = formatComponentName(vm, false)
-      mark(endTag)
-      measure(`vue ${vm._name} init`, startTag, endTag)
+    if (process.env.NODE_ENV !== "production" && config.performance && mark) {
+      // 性能追踪结束
+      vm._name = formatComponentName(vm, false);
+      mark(endTag);
+      measure(`vue ${vm._name} init`, startTag, endTag);
     }
 
     if (vm.$options.el) {
-      vm.$mount(vm.$options.el)
+      vm.$mount(vm.$options.el);
     }
   }
 }
@@ -89,7 +94,7 @@ export function initInternalComponent (vm: Component, options: InternalComponent
     opts.staticRenderFns = options.staticRenderFns
   }
 }
-
+// 解析构造者的options
 export function resolveConstructorOptions (Ctor: Class<Component>) {
   let options = Ctor.options
   if (Ctor.super) {
