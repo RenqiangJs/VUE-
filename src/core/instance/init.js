@@ -46,6 +46,7 @@ export function initMixin (Vue: Class<Component>) {
       );
     }
     /* istanbul ignore else */
+    /*非生产含环境对vm实例做一层代理(也就是渲染函数的作用域代理)，在开发的时候如果取到为定义的值，会给到一些提示 */
     if (process.env.NODE_ENV !== "production") {
       initProxy(vm);
     } else {
@@ -96,27 +97,32 @@ export function initInternalComponent (vm: Component, options: InternalComponent
 }
 // 解析构造者的options
 export function resolveConstructorOptions (Ctor: Class<Component>) {
-  let options = Ctor.options
+  let options = Ctor.options;
+  /* 
+    Ctor.super是子类才有的属性：
+    const Sub = Vue.extend()
+    console.log(Sub.super)  // Vue
+  */
   if (Ctor.super) {
-    const superOptions = resolveConstructorOptions(Ctor.super)
-    const cachedSuperOptions = Ctor.superOptions
+    const superOptions = resolveConstructorOptions(Ctor.super);
+    const cachedSuperOptions = Ctor.superOptions;
     if (superOptions !== cachedSuperOptions) {
       // super option changed,
       // need to resolve new options.
-      Ctor.superOptions = superOptions
+      Ctor.superOptions = superOptions;
       // check if there are any late-modified/attached options (#4976)
-      const modifiedOptions = resolveModifiedOptions(Ctor)
+      const modifiedOptions = resolveModifiedOptions(Ctor);
       // update base extend options
       if (modifiedOptions) {
-        extend(Ctor.extendOptions, modifiedOptions)
+        extend(Ctor.extendOptions, modifiedOptions);
       }
-      options = Ctor.options = mergeOptions(superOptions, Ctor.extendOptions)
+      options = Ctor.options = mergeOptions(superOptions, Ctor.extendOptions);
       if (options.name) {
-        options.components[options.name] = Ctor
+        options.components[options.name] = Ctor;
       }
     }
   }
-  return options
+  return options;
 }
 
 function resolveModifiedOptions (Ctor: Class<Component>): ?Object {

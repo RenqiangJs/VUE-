@@ -111,50 +111,56 @@ function initProps (vm: Component, propsOptions: Object) {
 }
 
 function initData (vm: Component) {
-  let data = vm.$options.data
-  data = vm._data = typeof data === 'function'
-    ? getData(data, vm)
-    : data || {}
+  let data = vm.$options.data;
+  /* 这里再次判断data的类型是因为beforeCreate在 mergeOptions之后，initState之前执行，这样在beforeCreate 
+    vm.$options.data修改data的类型
+  */
+  data = vm._data = typeof data === "function" ? getData(data, vm) : data || {};
+  // 对最终的data数据类型做一个判断：data选项必须返回一个对象
   if (!isPlainObject(data)) {
-    data = {}
-    process.env.NODE_ENV !== 'production' && warn(
-      'data functions should return an object:\n' +
-      'https://vuejs.org/v2/guide/components.html#data-Must-Be-a-Function',
-      vm
-    )
+    data = {};
+    process.env.NODE_ENV !== "production" &&
+      warn(
+        "data functions should return an object:\n" +
+          "https://vuejs.org/v2/guide/components.html#data-Must-Be-a-Function",
+        vm
+      );
   }
   // proxy data on instance
-  const keys = Object.keys(data)
-  const props = vm.$options.props
-  const methods = vm.$options.methods
-  let i = keys.length
+  const keys = Object.keys(data);
+  const props = vm.$options.props;
+  const methods = vm.$options.methods;
+  let i = keys.length;
   while (i--) {
-    const key = keys[i]
-    if (process.env.NODE_ENV !== 'production') {
+    const key = keys[i];
+    if (process.env.NODE_ENV !== "production") {
       if (methods && hasOwn(methods, key)) {
         warn(
           `Method "${key}" has already been defined as a data property.`,
           vm
-        )
+        );
       }
     }
     if (props && hasOwn(props, key)) {
-      process.env.NODE_ENV !== 'production' && warn(
-        `The data property "${key}" is already declared as a prop. ` +
-        `Use prop default value instead.`,
-        vm
-      )
+      process.env.NODE_ENV !== "production" &&
+        warn(
+          `The data property "${key}" is already declared as a prop. ` +
+            `Use prop default value instead.`,
+          vm
+        );
+      // 判断key是否是保留键：通过判断一个字符串是否以$或者_开头，vue不会代理以$或者_开头的属性
     } else if (!isReserved(key)) {
-      proxy(vm, `_data`, key)
+      // 对vm._data坐一层代理，访问vm.a相当于访问vm._data.a
+      proxy(vm, `_data`, key);
     }
   }
   // observe data
-  observe(data, true /* asRootData */)
+  observe(data, true /* asRootData */);
 }
 
 export function getData (data: Function, vm: Component): any {
   // #7573 disable dep collection when invoking data getters
-  pushTarget()
+  pushTarget()                 // pushTarget()和popTarget()都是为了防止重复收集依赖
   try {
     return data.call(vm, vm)
   } catch (e) {

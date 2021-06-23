@@ -17,7 +17,7 @@ import {
   validateProp,
   invokeWithErrorHandling
 } from '../util/index'
-
+// activeInstance始终保存着当前正在渲染的实例的引用
 export let activeInstance: any = null
 export let isUpdatingChildComponent: boolean = false
 
@@ -33,12 +33,18 @@ export function initLifecycle (vm: Component) {
   const options = vm.$options
 
   // locate first non-abstract parent
+  // 当前组件父组件的引用
   let parent = options.parent
+  // 当前组件有父组件且本身不是抽象组件 
   if (parent && !options.abstract) {
+    /* 抽象的组件是不能够也不应该作为父级的，所以 while 循环的目的就是
+       沿着父实例链逐层向上寻找到第一个不抽象的实例作为 parent（父级）
+       while循环：当parent是抽象组件，并且存在$parent属性的时候，会把parent.$parent属性赋值给parent，继续下一次循环
+       */
     while (parent.$options.abstract && parent.$parent) {
-      parent = parent.$parent
+      parent = parent.$parent;
     }
-    parent.$children.push(vm)
+    parent.$children.push(vm);
   }
 
   vm.$parent = parent

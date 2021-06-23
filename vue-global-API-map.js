@@ -9,7 +9,8 @@ Vue.util = {
 Vue.set = set;
 Vue.delete = del;
 Vue.nextTick = nextTick;
-Vue.options = {
+// global-api index.js Vue.options = Object.create(null)  :54
+Vue.options = {             
   components: {
     KeepAlive,
     // Transition 和 TransitionGroup 组件在 runtime/index.js 文件中被添加

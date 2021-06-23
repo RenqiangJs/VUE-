@@ -204,7 +204,7 @@ export function createComponent (
 
   return vnode
 }
-
+// 实例化子组件
 export function createComponentInstanceForVnode (
   // we know it's MountedComponentVNode but flow doesn't
   vnode: any,
