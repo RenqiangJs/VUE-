@@ -42,7 +42,7 @@ export class Observer {
   constructor(value: any) {
     
     this.value = value
-    this.dep = new Dep()
+    this.dep = new Dep()        // 此处收集的依赖属于一个对象或者数组
     this.vmCount = 0
     def(value, '__ob__', this)   // 定义不可枚举属性__ob__,防止后续的遍历到__ob__属性
     if (Array.isArray(value)) {
@@ -150,7 +150,7 @@ export function defineReactive (
   customSetter?: ?Function,
   shallow?: boolean     // 是否深度观测一个对象
 ) {
-  const dep = new Dep(); // 装观察者的容器
+  const dep = new Dep(); // 装观察者的容器，属于具体的某个字段
 
   const property = Object.getOwnPropertyDescriptor(obj, key);
   if (property && property.configurable === false) {
@@ -227,11 +227,13 @@ export function defineReactive (
  * already exist.
  */
 export function set (target: Array<any> | Object, key: any, val: any): any {
+  // 非生产环境下如果target是Null或者是undefined，则打印警告信息
   if (process.env.NODE_ENV !== 'production' &&
     (isUndef(target) || isPrimitive(target))
   ) {
     warn(`Cannot set reactive property on undefined, null, or primitive value: ${(target: any)}`)
   }
+  // target是一个数组，并且key是一个有效的数组索引
   if (Array.isArray(target) && isValidArrayIndex(key)) {
     target.length = Math.max(target.length, key)
     target.splice(key, 1, val)
