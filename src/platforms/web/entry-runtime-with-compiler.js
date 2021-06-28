@@ -8,7 +8,7 @@ import Vue from './runtime/index'
 import { query } from './util/index'
 import { compileToFunctions } from './compiler/index'
 import { shouldDecodeNewlines, shouldDecodeNewlinesForHref } from './util/compat'
-
+// cache通过缓存来避免重复求值，提升性能，该函数并不改变原函数的行为
 const idToTemplate = cached(id => {
   const el = query(id)
   return el && el.innerHTML
@@ -31,6 +31,7 @@ Vue.prototype.$mount = function (
 
   const options = this.$options
   // resolve template/el and convert to render function
+  // 如果没有render选项，进入if判断，生产render函数并挂载到options选项上，供mountComponent函数使用
   if (!options.render) {
     let template = options.template
     if (template) {
@@ -87,6 +88,7 @@ Vue.prototype.$mount = function (
  * of SVG elements in IE as well.
  */
 function getOuterHTML (el: Element): string {
+  // 这里做了兼容处理，实际上在 IE9-11 中 SVG 标签元素是没有 innerHTML 和 outerHTML 这两个属性的
   if (el.outerHTML) {
     return el.outerHTML
   } else {
@@ -95,7 +97,7 @@ function getOuterHTML (el: Element): string {
     return container.innerHTML
   }
 }
-
+// 暴露给开发者的API，它能将字符串编译成渲染函数
 Vue.compile = compileToFunctions
 
 export default Vue

@@ -51,23 +51,25 @@ export default class Watcher {
     isRenderWatcher?: boolean
   ) {
     this.vm = vm
+    // 如果是渲染watcher的话，当前组件的_watcher属性引用着当前观察者实例
     if (isRenderWatcher) {
       vm._watcher = this
     }
+    // 保存着当前组件的所有watcher，_watchers在initstate的时候初始化
     vm._watchers.push(this)
     // options
     if (options) {
-      this.deep = !!options.deep
-      this.user = !!options.user
-      this.lazy = !!options.lazy
-      this.sync = !!options.sync
-      this.before = options.before
+      this.deep = !!options.deep    // 用来告诉当前观察者实例对象是否是深度观测
+      this.user = !!options.user    // 用来标识当前观察者实例对象是 开发者定义的 还是 内部定义的
+      this.lazy = !!options.lazy    // 用来标识当前观察者实例对象是否是计算属性的观察者
+      this.sync = !!options.sync   // 用来告诉观察者当数据变化时是否同步求值并执行回调
+      this.before = options.before  // 可以理解为 Watcher 实例的钩子，当数据变化之后，触发更新之前，调用在创建渲染函数的观察者实例对象时传递的 before 选项
     } else {
       this.deep = this.user = this.lazy = this.sync = false
     }
-    this.cb = cb
+    this.cb = cb  // 当前观察实例的唯一标识
     this.id = ++uid // uid for batching
-    this.active = true
+    this.active = true  // 当前观察者实例是否为激活状态，默认为true
     this.dirty = this.lazy // for lazy watchers
     this.deps = []
     this.newDeps = []
@@ -80,6 +82,7 @@ export default class Watcher {
     if (typeof expOrFn === 'function') {
       this.getter = expOrFn
     } else {
+      // 解析expOrFn的合法性，并生成expOrFn的取值函数
       this.getter = parsePath(expOrFn)
       if (!this.getter) {
         this.getter = noop
@@ -100,6 +103,7 @@ export default class Watcher {
    * Evaluate the getter, and re-collect dependencies.
    */
   get () {
+    // 将当前观察者实例对象赋值给Dep.target，这个实例对象就是即将要收集的目标
     pushTarget(this)
     let value
     const vm = this.vm

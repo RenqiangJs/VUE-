@@ -174,6 +174,7 @@ export function mountComponent (
 
   let updateComponent
   /* istanbul ignore if */
+  // 定义并初始化 updateComponent 函数，这个函数将用作创建 Watcher 实例时传递给 Watcher 构造函数的第二个参数
   if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
     updateComponent = () => {
       const name = vm._name
@@ -193,6 +194,8 @@ export function mountComponent (
     }
   } else {
     updateComponent = () => {
+      // vm._render 函数的作用是调用 vm.$options.render 函数并返回生成的虚拟节点(vnode)
+      // vm._update 函数的作用是把 vm._render 函数生成的虚拟节点渲染成真正的 DOM
       vm._update(vm._render(), hydrating)
     }
   }
