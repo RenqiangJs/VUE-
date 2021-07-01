@@ -31,6 +31,7 @@ export function createCompileToFunctionFn (compile: Function): Function {
     delete options.warn
 
     /* istanbul ignore if */
+    // 非生产环境下检测new function是否可用
     if (process.env.NODE_ENV !== 'production') {
       // detect possible CSP restriction
       try {
@@ -49,17 +50,20 @@ export function createCompileToFunctionFn (compile: Function): Function {
     }
 
     // check cache
+    // options.delimiters是 entry-runtime-with-compiler compileToFunctions 传入
     const key = options.delimiters
       ? String(options.delimiters) + template
       : template
+      // 看key是否已缓存，存在直接返回cache[key],防止重复编译，提升性能
     if (cache[key]) {
       return cache[key]
     }
 
-    // compile
+    // compile 是闭包引用 createCompileToFunctionFn(compile)透传的实参
     const compiled = compile(template, options)
 
     // check compilation errors/tips
+    // 非生产环境下检测compiled是否有错误跟提示，存在则打印出来
     if (process.env.NODE_ENV !== 'production') {
       if (compiled.errors && compiled.errors.length) {
         if (options.outputSourceRange) {

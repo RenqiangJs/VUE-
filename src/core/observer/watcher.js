@@ -132,9 +132,11 @@ export default class Watcher {
    */
   addDep (dep: Dep) {
     const id = dep.id
+    // 避免一次求值过程中重复收集依赖
     if (!this.newDepIds.has(id)) {
       this.newDepIds.add(id)
       this.newDeps.push(dep)
+      // 避免多次求值（数据变化时重新求值的过程）过程中重复收集依赖
       if (!this.depIds.has(id)) {
         dep.addSub(this)
       }
@@ -146,19 +148,29 @@ export default class Watcher {
    */
   cleanupDeps () {
     let i = this.deps.length
+    /*
+      这段 while 循环就是对 deps 数组进行遍历，也就是对上一次求值所收集到的 Dep 对象进行遍历，然
+      后在循环内部检查上一次求值所收集到的 Dep 实例对象是否存在于当前这次求值所收集到的 Dep 实例对
+      象中，如果不存在则说明该 Dep 实例对象已经和该观察者不存在依赖关系了，这时就会调用 dep.removeSub(this)
+      方法并以该观察者实例对象作为参数传递，从而将该观察者对象从 Dep 实例对象中移除。
+    */
     while (i--) {
       const dep = this.deps[i]
       if (!this.newDepIds.has(dep.id)) {
         dep.removeSub(this)
       }
     }
+    // 前三行this.depIds和this.newDepIds交换值
     let tmp = this.depIds
     this.depIds = this.newDepIds
     this.newDepIds = tmp
+    // 清空this.newDepIds
     this.newDepIds.clear()
+    // 前三行this.deps和this.newDeps交换值
     tmp = this.deps
     this.deps = this.newDeps
     this.newDeps = tmp
+    // 清空this.newDeps
     this.newDeps.length = 0
   }
 
@@ -184,6 +196,7 @@ export default class Watcher {
   run () {
     if (this.active) {
       const value = this.get()
+      // if代码块是为非渲染watcher准备的
       if (
         value !== this.value ||
         // Deep watchers and watchers on Object/Arrays should fire even
@@ -195,6 +208,7 @@ export default class Watcher {
         // set new value
         const oldValue = this.value
         this.value = value
+        // 用户自定义的watcher，例如watch
         if (this.user) {
           const info = `callback for watcher "${this.expression}"`
           invokeWithErrorHandling(this.cb, this.vm, [value, oldValue], this.vm, info)
@@ -232,10 +246,18 @@ export default class Watcher {
       // remove self from vm's watcher list
       // this is a somewhat expensive operation so we skip it
       // if the vm is being destroyed.
+      // 每个组件实例都有_isBeingDestroyed属性，标识当前组件是否被销毁（true已销毁，false未销毁）
       if (!this.vm._isBeingDestroyed) {
+        // 由于这个操作的性能开销比较大，所以仅在组件没有被销毁的情况下才会执行此操作
         remove(this.vm._watchers, this)
       }
       let i = this.deps.length
+      /*
+        当一个属性与一个观察者建立联系之后，属性的 Dep 实例对象会收集到该观察者对象，同时观察者
+        对象也会将该 Dep 实例对象收集，这是一个双向的过程，并且一个观察者可以同时观察多个属性，这
+        些属性的 Dep 实例对象都会被收集到该观察者实例对象的 this.deps 数组中，所以解除属性与观
+        察者之间关系的第二步就是将当前观察者实例对象从所有的 Dep 实例对象中移除
+      */
       while (i--) {
         this.deps[i].removeSub(this)
       }

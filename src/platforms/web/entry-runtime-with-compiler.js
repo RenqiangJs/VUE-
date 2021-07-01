@@ -62,11 +62,11 @@ Vue.prototype.$mount = function (
       if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
         mark('compile')
       }
-
+      // 将传入的template模版编译成渲染函数
       const { render, staticRenderFns } = compileToFunctions(template, {
         outputSourceRange: process.env.NODE_ENV !== 'production',
-        shouldDecodeNewlines,
-        shouldDecodeNewlinesForHref,
+        shouldDecodeNewlines,  // 对浏览器怪癖做兼容处理的，是一个布尔值
+        shouldDecodeNewlinesForHref, // 对浏览器怪癖做兼容处理的，是一个布尔值
         delimiters: options.delimiters,
         comments: options.comments
       }, this)

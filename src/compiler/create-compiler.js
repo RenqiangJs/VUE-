@@ -13,7 +13,7 @@ export function createCompilerCreator (baseCompile: Function): Function {
       const finalOptions = Object.create(baseOptions)
       const errors = []
       const tips = []
-
+      // 编译过程中收集提示和错误信息
       let warn = (msg, range, tip) => {
         (tip ? tips : errors).push(msg)
       }
@@ -66,10 +66,10 @@ export function createCompilerCreator (baseCompile: Function): Function {
       compiled.tips = tips
       return compiled
     }
-
+    // 真正的编译工作依赖于compile
     return {
       compile,
-      compileToFunctions: createCompileToFunctionFn(compile)
+      compileToFunctions: createCompileToFunctionFn(compile) 
     }
   }
 }

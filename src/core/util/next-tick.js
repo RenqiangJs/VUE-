@@ -97,6 +97,7 @@ export function nextTick (cb?: Function, ctx?: Object) {
       _resolve(ctx)
     }
   })
+  //pending 真假代表回调队列是否处于等待刷新的状态
   if (!pending) {
     pending = true
     timerFunc()

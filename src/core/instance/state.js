@@ -175,6 +175,7 @@ const computedWatcherOptions = { lazy: true }
 
 function initComputed (vm: Component, computed: Object) {
   // $flow-disable-line
+  // 实例上的_computedWatchers属性就是用来存储计算属性观察者的
   const watchers = vm._computedWatchers = Object.create(null)
   // computed properties are just getters during SSR
   const isSSR = isServerRendering()
@@ -191,6 +192,9 @@ function initComputed (vm: Component, computed: Object) {
 
     if (!isSSR) {
       // create internal watcher for the computed property.
+      /*
+        生成计算watcher实例，compA () { return this.a +1 } 这样 compA会作为属性a的依赖被收集
+      */
       watchers[key] = new Watcher(
         vm,
         getter || noop,
@@ -202,6 +206,7 @@ function initComputed (vm: Component, computed: Object) {
     // component-defined computed properties are already defined on the
     // component prototype. We only need to define computed properties defined
     // at instantiation here.
+    // 非生产环境中还要检查计算属性中是否存在与 data 和 props 选项同名的属性，如果有则会打印警告信息。如果没有则调用 defineComputed 定义计算属性
     if (!(key in vm)) {
       defineComputed(vm, key, userDef)
     } else if (process.env.NODE_ENV !== 'production') {
@@ -221,6 +226,7 @@ export function defineComputed (
   key: string,
   userDef: Object | Function
 ) {
+  // 非服务端渲染计算属性才会缓存
   const shouldCache = !isServerRendering()
   if (typeof userDef === 'function') {
     sharedPropertyDefinition.get = shouldCache
@@ -244,6 +250,7 @@ export function defineComputed (
       )
     }
   }
+  // 在实例对象上定义与计算属性同名的key,当触发计算属性的求值属性时触发上面定义的sharedPropertyDefinition.get取值拦截器，也就是下面的createComputedGetter
   Object.defineProperty(target, key, sharedPropertyDefinition)
 }
 
@@ -254,6 +261,7 @@ function createComputedGetter (key) {
       if (watcher.dirty) {
         watcher.evaluate()
       }
+      // 关键的一步是渲染函数的执行会读取计算属性，渲染函数执行之前Dep.target一定是渲染函数的观察者对象
       if (Dep.target) {
         watcher.depend()
       }
@@ -352,9 +360,9 @@ export function stateMixin (Vue: Class<Component>) {
   Vue.prototype.$delete = del
 
   Vue.prototype.$watch = function (
-    expOrFn: string | Function,
-    cb: any,
-    options?: Object
+    expOrFn: string | Function,     // 要观察的属性
+    cb: any,    // 回调函数
+    options?: Object   // 选项参数，比如是否立即执行回调或者是否深度观测等
   ): Function {
     const vm: Component = this
     if (isPlainObject(cb)) {

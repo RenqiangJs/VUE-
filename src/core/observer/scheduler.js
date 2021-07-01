@@ -165,6 +165,10 @@ export function queueWatcher (watcher: Watcher) {
   const id = watcher.id
   if (has[id] == null) {
     has[id] = true
+    // flushing 变量是一个标志，我们知道放入队列 queue 中的所有观察者将会在突变
+    // 完成之后统一执行更新，当更新开始时会将 flushing 变量的值设置为 true，代表着此
+    // 时正在执行更新，所以根据判断条件 if (!flushing) 可知只有当队列没有执行更新时
+    // 才会简单地将观察者追加到队列的尾部
     if (!flushing) {
       queue.push(watcher)
     } else {

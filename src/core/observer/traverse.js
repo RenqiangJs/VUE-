@@ -22,6 +22,14 @@ function _traverse (val: any, seen: SimpleSet) {
   if ((!isA && !isObject(val)) || Object.isFrozen(val) || val instanceof VNode) {
     return
   }
+  // 使用 obj1 或 obj2 这两个对象中的任意一个对象出现在 Vue 的响应式数据中，如果不做防循环引用的处理，将会导致死循环
+  /*
+    const obj1 = {}
+    const obj2 = {}
+
+    obj1.data = obj2
+    obj2.data = obj1
+  */
   if (val.__ob__) {
     const depId = val.__ob__.dep.id
     if (seen.has(depId)) {
