@@ -25,7 +25,7 @@ const arrayKeys = Object.getOwnPropertyNames(arrayMethods)
  */
 export let shouldObserve: boolean = true
 
-export function toggleObserving (value: boolean) {
+export function toggleObserving(value: boolean) {
   shouldObserve = value
 }
 
@@ -41,7 +41,7 @@ export class Observer {
   vmCount: number; // number of vms that have this object as root $data
 
   constructor(value: any) {
-    
+
     this.value = value
     this.dep = new Dep()        // 此处收集的依赖属于一个对象或者数组
     this.vmCount = 0
@@ -65,7 +65,7 @@ export class Observer {
    * getter/setters. This method should only be called when
    * value type is Object.
    */
-  walk (obj: Object) {
+  walk(obj: Object) {
     const keys = Object.keys(obj)
     for (let i = 0; i < keys.length; i++) {
       defineReactive(obj, keys[i])
@@ -75,7 +75,7 @@ export class Observer {
   /**
    * Observe a list of Array items.
    */
-  observeArray (items: Array<any>) {
+  observeArray(items: Array<any>) {
     for (let i = 0, l = items.length; i < l; i++) {
       observe(items[i])
     }
@@ -88,7 +88,7 @@ export class Observer {
  * Augment a target Object or Array by intercepting
  * the prototype chain using __proto__
  */
-function protoAugment (target, src: Object) {
+function protoAugment(target, src: Object) {
   /* eslint-disable no-proto */
   target.__proto__ = src
   /* eslint-enable no-proto */
@@ -99,7 +99,7 @@ function protoAugment (target, src: Object) {
  * hidden properties.
  */
 /* istanbul ignore next */
-function copyAugment (target: Object, src: Object, keys: Array<string>) {
+function copyAugment(target: Object, src: Object, keys: Array<string>) {
   for (let i = 0, l = keys.length; i < l; i++) {
     const key = keys[i]
     def(target, key, src[key])
@@ -116,7 +116,7 @@ function copyAugment (target: Object, src: Object, keys: Array<string>) {
 // observe --> new Observer() --> difineReactive
 
 
-export function observe (value: any, asRootData: ?boolean): Observer | void {
+export function observe(value: any, asRootData: ?boolean): Observer | void {
   // 被观测的数据不是一个对象或者是一个VNode实例直接返回
   if (!isObject(value) || value instanceof VNode) {
     return
@@ -135,6 +135,7 @@ export function observe (value: any, asRootData: ?boolean): Observer | void {
   ) {
     ob = new Observer(value);
   }
+  // 根数据对象拥有vmCount,并且大于0
   if (asRootData && ob) {
     ob.vmCount++
   }
@@ -144,7 +145,7 @@ export function observe (value: any, asRootData: ?boolean): Observer | void {
 /**
  * Define a reactive property on an Object.
  */
-export function defineReactive (
+export function defineReactive(
   obj: Object,
   key: string,
   val: any,
@@ -172,11 +173,19 @@ export function defineReactive (
       但是经过 defineReactive 函数的处理之后，该属性将被重新定义 getter 和 setter，此时该属
       性变成了既拥有 get 函数又拥有 set 函数。并且当我们尝试给该属性重新赋值时，那么新的值将会被观
       测。这时候矛盾就产生了：原本该属性不会被深度观测，但是重新赋值之后，新的值却被观测了。
-      */
+  */
   if ((!getter || setter) && arguments.length === 2) {
     val = obj[key];
   }
-
+  /* 
+    const data = {
+      a: {
+        b: 1
+      }
+    }
+    此处其实是一个递归操作，再次调用observe方法，发现如果val不是简单数据类型并且有了__ob__，会ob = new Observer(value);
+    这样data.a的Observer实例对象会保存在childOb变量中,所以就有childOb === data.a.__ob__
+  */
   let childOb = !shallow && observe(val);
   /* 
   依赖收集的整个过程：
@@ -206,25 +215,27 @@ export function defineReactive (
           就是通过数据对象的 __ob__ 属性做到的。因为 __ob__.dep 这个”筐“里收集了与 dep 这个”筐“同样的
           依赖。假设 Vue.set 函数代码如下：
         */
-        dep.depend();
-       // 如果发现value是数组的话就调用dependArray() 深度遍历数组属性，如果value里面有对象或者嵌套数组的话
-       // 就调用_ob_.dep.depend()收集嵌套在里面的数组或对象的依赖 
-       /*
-        在模板里使用了数据 arr，这将会触发数据对象的 arr 属性的 get 函数，我们知道 arr 属性的 get 函数通过闭包引用了两
-        个用来收集依赖的”筐“，一个是属于 arr 属性自身的 dep 对象，另一个是 childOb.dep 对象，其中 childOb 就是 ob1。
-        这时依赖会被收集到这两个”筐“中，但大家要注意的是 ob2.dep 这个”筐“中，是没有收集到依赖的。有的同学会说：”模板中依
-        赖的数据是 arr，并不是 arr 数组的第一个对象元素，所以 ob2 没有收集到依赖很正常啊“，这是一个错误的想法，因为依赖
-        了数组 arr 就等价于依赖了数组内的所有元素，数组内所有元素的改变都可以看做是数组的改变。但由于 ob2 没有收集到依赖，所以
-        现在就导致如下代码触发不了响应：
-          ins.$set(ins.$data.arr[0], 'b', 2)
-       */
+        dep.depend();    // 收集属于某个具体字段的依赖
+        /* 
+          如果发现value是数组的话就调用dependArray() 深度遍历数组属性，如果value里面有对象或者嵌套数组的话
+          就调用_ob_.dep.depend()收集嵌套在里面的数组或对象的依赖
+        */        
+        /*
+         在模板里使用了数据 arr，这将会触发数据对象的 arr 属性的 get 函数，我们知道 arr 属性的 get 函数通过闭包引用了两
+         个用来收集依赖的”筐“，一个是属于 arr 属性自身的 dep 对象，另一个是 childOb.dep 对象，其中 childOb 就是 ob1。
+         这时依赖会被收集到这两个”筐“中，但大家要注意的是 ob2.dep 这个”筐“中，是没有收集到依赖的。有的同学会说：”模板中依
+         赖的数据是 arr，并不是 arr 数组的第一个对象元素，所以 ob2 没有收集到依赖很正常啊“，这是一个错误的想法，因为依赖
+         了数组 arr 就等价于依赖了数组内的所有元素，数组内所有元素的改变都可以看做是数组的改变。但由于 ob2 没有收集到依赖，所以
+         现在就导致如下代码触发不了响应：
+           ins.$set(ins.$data.arr[0], 'b', 2)
+        */
         if (childOb) {
-          childOb.dep.depend();
-         /*之所以数组要特殊处理，是因为在vue中数组的索引是非响应式的，当arr是数组时，就要调用dependArray（）深度遍历
-          data={
-            arr:[]
-          }
-         */ 
+          childOb.dep.depend();  // 收集属于对象的依赖
+          /*之所以数组要特殊处理，是因为在vue中数组的索引是非响应式的，当arr是数组时，就要调用dependArray（）深度遍历
+           data={
+             arr:[]
+           }
+          */
           if (Array.isArray(value)) {
             dependArray(value);
           }
@@ -265,7 +276,7 @@ export function defineReactive (
  * triggers change notification if the property doesn't
  * already exist.
  */
-export function set (target: Array<any> | Object, key: any, val: any): any {
+export function set(target: Array<any> | Object, key: any, val: any): any {
   // 非生产环境下如果target是Null或者是undefined，则打印警告信息
   if (process.env.NODE_ENV !== 'production' &&
     (isUndef(target) || isPrimitive(target))
@@ -301,16 +312,17 @@ export function set (target: Array<any> | Object, key: any, val: any): any {
     return val
   }
   // 将key转换成响应式
-  defineReactive(ob.value, key, val)
+  defineReactive(ob.value, key, val);
   // 触发依赖
-  ob.dep.notify()
-  return val
-}
+  ob.dep.notify();
+  return val;
 
+}
 /**
  * Delete a property and trigger change if necessary.
  */
-export function del (target: Array<any> | Object, key: any) {
+export function del(target: Array<any> | Object, key: any) {
+  // 检测 target 是否是 undefined 或 null 或者是原始类型值
   if (process.env.NODE_ENV !== 'production' &&
     (isUndef(target) || isPrimitive(target))
   ) {
@@ -328,10 +340,12 @@ export function del (target: Array<any> | Object, key: any) {
     )
     return
   }
+  // 如果要删除的对象根本不在target,什么都不用做
   if (!hasOwn(target, key)) {
     return
   }
   delete target[key]
+  // 如果没有ob,说明target不是响应式的,什么都不用做
   if (!ob) {
     return
   }
@@ -342,7 +356,7 @@ export function del (target: Array<any> | Object, key: any) {
  * Collect dependencies on array elements when the array is touched, since
  * we cannot intercept array element access like property getters.
  */
-function dependArray (value: Array<any>) {
+function dependArray(value: Array<any>) {
   for (let e, i = 0, l = value.length; i < l; i++) {
     e = value[i]
     e && e.__ob__ && e.__ob__.dep.depend()

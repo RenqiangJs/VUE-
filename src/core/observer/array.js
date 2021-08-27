@@ -30,6 +30,7 @@ methodsToPatch.forEach(function (method) {
     const result = original.apply(this, args);
     const ob = this.__ob__;
     let inserted;
+    
     switch (method) {
       case "push":
       case "unshift":

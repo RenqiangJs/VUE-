@@ -32,7 +32,6 @@ export function initMixin (Vue: Class<Component>) {
     // a flag to avoid this being observed
     vm._isVue = true;
     // merge options
-    // options._isComponent是一个内部选项，在new vue实例的时候不会传递该选项，因此会走else逻辑
     if (options && options._isComponent) {
       // optimize internal component instantiation
       // since dynamic options merging is pretty slow, and none of the
@@ -40,13 +39,13 @@ export function initMixin (Vue: Class<Component>) {
       initInternalComponent(vm, options);
     } else {
       vm.$options = mergeOptions(
-        resolveConstructorOptions(vm.constructor),
+        resolveConstructorOptions(vm.constructor),  // 解析构造函数的options
         options || {},
         vm
       );
     }
     /* istanbul ignore else */
-    /*非生产含环境对vm实例做一层代理(也就是渲染函数的作用域代理)，在开发的时候如果取到为定义的值，会给到一些提示 */
+    /*设置渲染函数的作用域，在开发的时候如果取到为定义的值，会给到一些提示 */
     if (process.env.NODE_ENV !== "production") {
       initProxy(vm);
     } else {
@@ -100,7 +99,7 @@ export function resolveConstructorOptions (Ctor: Class<Component>) {
   let options = Ctor.options;
   /* 
     Ctor.super是子类才有的属性：
-    const Sub = Vue.extend()
+    const Sub = Vue.extend() 或者 每个组件
     console.log(Sub.super)  // Vue
   */
   if (Ctor.super) {

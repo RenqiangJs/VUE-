@@ -228,6 +228,10 @@ export function updateChildComponent (
   parentVnode: MountedComponentVNode,
   renderChildren: ?Array<VNode>
 ) {
+  /* 
+    updateChildComponent方法会更新实例对象的$attrs和$listeners属性的值，所以这里先将isUpdatingChildComponent
+    设置为true，防止提示这两个值是只读属性（./render.js文件中43，46）
+  */
   if (process.env.NODE_ENV !== 'production') {
     isUpdatingChildComponent = true
   }

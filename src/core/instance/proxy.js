@@ -42,7 +42,10 @@ if (process.env.NODE_ENV !== 'production') {
     const isBuiltInModifier = makeMap(
       "stop,prevent,self,ctrl,shift,alt,meta,exact"
     );
-    // 为config.keyCodes设置set代理，其目的是防止开发者在自定义键位别名的时候，覆盖了内置的修饰符
+    /* 
+      为config.keyCodes设置set代理，其目的是防止开发者在自定义键位别名的时候，覆盖了内置的修饰符
+      例如: Vue.config.keyCodes.shift = 16 
+    */
     config.keyCodes = new Proxy(config.keyCodes, {
       set(target, key, value) {
         if (isBuiltInModifier(key)) {

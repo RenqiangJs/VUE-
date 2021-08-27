@@ -38,8 +38,9 @@ const strats = config.optionMergeStrategies
  */
 if (process.env.NODE_ENV !== 'production') {
   strats.el = strats.propsData = function (parent, child, vm, key) {
-    /* 通过判断有没有vm（vue实例），来确定是通过new 操作符调用，还是vue.extend()调用 
-      而子组件的实现方式就是通过实例化子类完成的，子类又是通过 Vue.extend 创造出来的，所以我们就能通过对 vm 的判断而得知是否是子组件了
+    /* 
+      mergeOptions在this._init()里面执行的时候传递了第三个参数vm,而在vue.extend()实例话子组件的时候没有传递vm
+      el,propsData是new vue的时候才需要传递的选项，自组建实例化的时候传递了就会警告提示
     */
     if (!vm) {
       warn(
@@ -54,6 +55,7 @@ if (process.env.NODE_ENV !== 'production') {
 /**
  * Helper that recursively merges two data objects together.
  */
+/* 将parentVal合并到childrenVal */
 function mergeData (to: Object, from: ?Object): Object {
   if (!from) return to
   let key, toVal, fromVal
@@ -68,8 +70,10 @@ function mergeData (to: Object, from: ?Object): Object {
     if (key === '__ob__') continue
     toVal = to[key]
     fromVal = from[key]
+    // 如果from对象中的key不在to对象中，则使用set方法为to对象设置key和相应的值
     if (!hasOwn(to, key)) {
       set(to, key, fromVal)
+      // 
     } else if (
       toVal !== fromVal &&
       isPlainObject(toVal) &&
@@ -132,6 +136,7 @@ strats.data = function (
   childVal: any,
   vm?: Component
 ): ?Function {
+  // 合并的时候如果有vm这个参数说明就是创建组件或者vue.extend()，这个时候有data一定是一个function，如果没有的话就是undefined
   if (!vm) {
     if (childVal && typeof childVal !== 'function') {
       process.env.NODE_ENV !== 'production' && warn(
@@ -184,7 +189,7 @@ function dedupeHooks (hooks) {
   }
   return res
 }
-
+// 经过mergeHook处理之后，将被合并成一个数组
 LIFECYCLE_HOOKS.forEach(hook => {
   strats[hook] = mergeHook
 })
@@ -202,6 +207,9 @@ function mergeAssets (
   vm?: Component,
   key: string
 ): Object {
+  /* 以parentVal为原型创建对象，这就是为什么在业务组件中没有注册keep-alive,Transition,TransitionGroup ,却还能
+    使用他们是原因
+  */
   const res = Object.create(parentVal || null)
   if (childVal) {
     process.env.NODE_ENV !== 'production' && assertObjectType(key, childVal, vm)  // 非生产环境下验证childVal是不是一个纯对象，不是的话给一个警告
@@ -427,9 +435,16 @@ export function mergeOptions (
 ): Object {
   if (process.env.NODE_ENV !== 'production') {
     // 校验组件名字是否合法
+    /*
+      1.vue限定组件的名字由普通的字符和中横线组成，切必须以字母开头
+      2.不能是内置标签（slot，component）
+      3.不能是保留标签
+    */
     checkComponents(child)
   }
-
+  /*child参数还可以是一个函数，具有oprions选项的函数（即：vue构造函数和通过extend创造出来的子类）
+    由此可见，new vue（options）的时候，options是可以直接传递一个vue实例子
+  */
   if (typeof child === 'function') {
     child = child.options
   }
@@ -459,12 +474,13 @@ export function mergeOptions (
     mergeField(key)
   }
   for (key in child) {
-    // 如果child上的键在parent上也出现，就不执行mergeField方法
+    // 如果child上的键在parent上也出现，就不执行mergeField方法,在上面的一个for循环已经调用过，避免重复调用
     if (!hasOwn(parent, key)) {
       mergeField(key)
     }
   }
   function mergeField (key) {
+    // starts.el和starts.propsData只有非生产环境下才有，生产环境下将是undefined，因此直接用defaultStrat，殊途同归
     const strat = strats[key] || defaultStrat
     options[key] = strat(parent[key], child[key], vm, key)
   }

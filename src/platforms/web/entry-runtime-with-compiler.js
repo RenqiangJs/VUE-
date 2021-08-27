@@ -3,7 +3,7 @@
 import config from 'core/config'
 import { warn, cached } from 'core/util/index'
 import { mark, measure } from 'core/util/perf'
-
+// 导入运行时vue,下面会在这个基础上添加compiler
 import Vue from './runtime/index'
 import { query } from './util/index'
 import { compileToFunctions } from './compiler/index'
@@ -13,7 +13,7 @@ const idToTemplate = cached(id => {
   const el = query(id)
   return el && el.innerHTML
 })
-
+// 缓存原型上的$mount方法
 const mount = Vue.prototype.$mount
 Vue.prototype.$mount = function (
   el?: string | Element,
@@ -71,6 +71,7 @@ Vue.prototype.$mount = function (
         comments: options.comments
       }, this)
       options.render = render
+      
       options.staticRenderFns = staticRenderFns
 
       /* istanbul ignore if */
