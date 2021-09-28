@@ -39,7 +39,7 @@ const strats = config.optionMergeStrategies
 if (process.env.NODE_ENV !== 'production') {
   strats.el = strats.propsData = function (parent, child, vm, key) {
     /* 
-      mergeOptions在this._init()里面执行的时候传递了第三个参数vm,而在vue.extend()实例话子组件的时候没有传递vm
+      mergeOptions在this._init()里面执行的时候传递了第三个参数vm,而在vue.extend()实例化子组件的时候没有传递vm
       el,propsData是new vue的时候才需要传递的选项，自组建实例化的时候传递了就会警告提示
     */
     if (!vm) {
@@ -136,7 +136,7 @@ strats.data = function (
   childVal: any,
   vm?: Component
 ): ?Function {
-  // 合并的时候如果有vm这个参数说明就是创建组件或者vue.extend()，这个时候有data一定是一个function，如果没有的话就是undefined
+  // 合并的时候如果没有vm这个参数说明就是创建组件或者vue.extend()，也就是创建子组件,这个时候有data一定是一个function，如果没有的话就是undefined
   if (!vm) {
     if (childVal && typeof childVal !== 'function') {
       process.env.NODE_ENV !== 'production' && warn(
@@ -442,7 +442,7 @@ export function mergeOptions (
     */
     checkComponents(child)
   }
-  /*child参数还可以是一个函数，具有oprions选项的函数（即：vue构造函数和通过extend创造出来的子类）
+  /*child参数还可以是一个函数，具有options选项的函数（即：vue构造函数和通过extend创造出来的子类）
     由此可见，new vue（options）的时候，options是可以直接传递一个vue实例子
   */
   if (typeof child === 'function') {

@@ -70,7 +70,7 @@ export default class Watcher {
     this.cb = cb  // 当前观察实例的唯一标识
     this.id = ++uid // uid for batching
     this.active = true  // 当前观察者实例是否为激活状态，默认为true
-    this.dirty = this.lazy // for lazy watchers
+    this.dirty = this.lazy // for lazy watchers 为true代表还没有求值
     this.deps = []
     this.newDeps = []
     this.depIds = new Set()
@@ -82,7 +82,7 @@ export default class Watcher {
     if (typeof expOrFn === 'function') {
       this.getter = expOrFn
     } else {
-      // 解析expOrFn的合法性，并生成expOrFn的取值函数
+      // 解析expOrFn的合法性，并生成expOrFn的取值函数,触发拦截器属性
       this.getter = parsePath(expOrFn)
       if (!this.getter) {
         this.getter = noop
@@ -132,11 +132,11 @@ export default class Watcher {
    */
   addDep (dep: Dep) {
     const id = dep.id
-    // 避免一次求值过程中重复收集依赖
+    // 根据dep.id是否存在于newDepIds中,这样无论一个数据属性被读取了多少次，对于同一个观察者它只会收集一次
     if (!this.newDepIds.has(id)) {
       this.newDepIds.add(id)
       this.newDeps.push(dep)
-      // 避免多次求值（数据变化时重新求值的过程）过程中重复收集依赖
+      // 避免多次求值（多次求值就是指数据变化时重新求值的过程）过程中重复收集依赖
       if (!this.depIds.has(id)) {
         dep.addSub(this)
       }

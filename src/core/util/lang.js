@@ -32,6 +32,13 @@ export function def (obj: Object, key: string, val: any, enumerable?: boolean) {
  */
 const bailRE = new RegExp(`[^${unicodeRegExp.source}.$_\\d]`)
 export function parsePath (path: string): any {
+  /* 
+    举几个例子如 obj~a、obj/a、obj*a、obj+a 等，这些字符串中的 ~、/、* 以
+    及 + 字符都能成功匹配正则 bailRE，这时 parsePath 函数将返回 undefined，
+    也就是解析失败。实际上这些字符串在 javascript 中不是一个合法的访问对象属性
+    的语法，按照 bailRE 正则只有如下这几种形式的字符串才能解析成功：obj.a、this.$watch 等，看
+    到这里你也应该知道为什么 bailRE 正则中包含字符 . 和 $
+  */
   if (bailRE.test(path)) {
     return
   }

@@ -94,7 +94,12 @@ if (process.env.NODE_ENV !== 'production') {
     if (hasProxy) {
       // determine which proxy handler to use
       const options = vm.$options;
-      // options.render._withStripped只在测试代码中出现过，这里一般情况下都会取值hasHandler
+      /* 
+        因为在使用 webpack 配合 vue-loader 的环境中， vue-loader 会借
+        助 vuejs@component-compiler-utils 将 template 编译为不使用 
+        with 语句包裹的遵循严格模式的 JavaScript，并为编译后的 render 方
+        法设置 render._withStripped = true
+      */
       const handlers =
         options.render && options.render._withStripped
           ? getHandler

@@ -41,7 +41,7 @@ export class Observer {
   vmCount: number; // number of vms that have this object as root $data
 
   constructor(value: any) {
-
+    console.log(value,'value')
     this.value = value
     this.dep = new Dep()        // 此处收集的依赖属于一个对象或者数组
     this.vmCount = 0
@@ -121,7 +121,7 @@ export function observe(value: any, asRootData: ?boolean): Observer | void {
   if (!isObject(value) || value instanceof VNode) {
     return
   }
-  // 定义保存Observe实例的变量
+  // 保存Observe实例
   let ob: Observer | void
   // 当一个数据对象被观测之后将会在该对象上定义 __ob__ 属性，所以 if 分支的作用是用来避免重复观测一个数据对象
   if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
@@ -215,7 +215,7 @@ export function defineReactive(
           就是通过数据对象的 __ob__ 属性做到的。因为 __ob__.dep 这个”筐“里收集了与 dep 这个”筐“同样的
           依赖。假设 Vue.set 函数代码如下：
         */
-        dep.depend();    // 收集属于某个具体字段的依赖
+        dep.depend();    
         /* 
           如果发现value是数组的话就调用dependArray() 深度遍历数组属性，如果value里面有对象或者嵌套数组的话
           就调用_ob_.dep.depend()收集嵌套在里面的数组或对象的依赖
@@ -230,7 +230,7 @@ export function defineReactive(
            ins.$set(ins.$data.arr[0], 'b', 2)
         */
         if (childOb) {
-          childOb.dep.depend();  // 收集属于对象的依赖
+          childOb.dep.depend();  
           /*之所以数组要特殊处理，是因为在vue中数组的索引是非响应式的，当arr是数组时，就要调用dependArray（）深度遍历
            data={
              arr:[]
