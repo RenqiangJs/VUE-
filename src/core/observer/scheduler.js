@@ -68,6 +68,7 @@ if (inBrowser && !isIE) {
 /**
  * Flush both queues and run the watchers.
  */
+//  作用之一就是用来将队列中的观察者统一执行更新的
 function flushSchedulerQueue () {
   currentFlushTimestamp = getNow()
   flushing = true

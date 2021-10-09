@@ -226,7 +226,7 @@ export function defineComputed (
   key: string,
   userDef: Object | Function
 ) {
-  // 非服务端渲染计算属性才会缓存
+  // 非服务端渲染计算属性才会缓存 shouldCache为真说明是非服务端渲染
   const shouldCache = !isServerRendering()
   if (typeof userDef === 'function') {
     sharedPropertyDefinition.get = shouldCache
@@ -253,15 +253,19 @@ export function defineComputed (
   // 在实例对象上定义与计算属性同名的key,当触发计算属性的求值属性时触发上面定义的sharedPropertyDefinition.get取值拦截器，也就是下面的createComputedGetter
   Object.defineProperty(target, key, sharedPropertyDefinition)
 }
-
+/* 
+  求值出发计算属性的get拦截器 --> watcher.evaluate() --> pushTarget(this[计算属性的watcher实例]) --> 执行watcher实例的getter
+  --> 此时会触发计算属性依赖属性的get拦截器 --> 将计算属性的watcher实例作为依赖收集 --> 接着计算属性watcher实例的get方法往下执行 -->
+  popTarget(this[计算属性的watcher实例]),此时Dep.target已经变成渲染watcher实例了 --> 再执行watcher.depend(),将渲染watcher作为依赖收集
+*/
 function createComputedGetter (key) {
   return function computedGetter () {
     const watcher = this._computedWatchers && this._computedWatchers[key]
     if (watcher) {
       if (watcher.dirty) {
+        // 触发A属性的get拦截器,A属性dep实例会收集到计算属性的观察者对象
         watcher.evaluate()
       }
-      // 关键的一步是渲染函数的执行会读取计算属性，渲染函数执行之前Dep.target一定是渲染函数的观察者对象
       if (Dep.target) {
         watcher.depend()
       }

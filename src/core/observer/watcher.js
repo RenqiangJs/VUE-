@@ -232,8 +232,10 @@ export default class Watcher {
    * Depend on all deps collected by this watcher.
    */
   depend () {
+    // deps保存的是计算属性依赖的某个属性的dep,在cleanupDeps赋值
     let i = this.deps.length
     while (i--) {
+      // 这是再次执行dep.depend()方法的时候,Dep.target已经是渲染watcher,这样属性就可以收集到渲染watcher作为依赖
       this.deps[i].depend()
     }
   }

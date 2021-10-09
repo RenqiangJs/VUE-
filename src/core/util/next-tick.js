@@ -83,7 +83,10 @@ if (typeof Promise !== 'undefined' && isNative(Promise)) {
     setTimeout(flushCallbacks, 0)
   }
 }
+/* 
+  nextTick首先将cb push到callbacks,然后通过timerFunc注册microTimerFunc 或者 macroTimerFunc,在当前调用栈清空执行(flushCallbacks)
 
+*/
 export function nextTick (cb?: Function, ctx?: Object) {
   let _resolve
   callbacks.push(() => {
