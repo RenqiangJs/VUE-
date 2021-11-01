@@ -10,6 +10,7 @@ import {
 function transformNode (el: ASTElement, options: CompilerOptions) {
   const warn = options.warn || baseWarn
   const staticClass = getAndRemoveAttr(el, 'class')
+  // 说明在非绑定的class属性里面使用字面量表达式
   if (process.env.NODE_ENV !== 'production' && staticClass) {
     const res = parseText(staticClass, options.delimiters)
     if (res) {

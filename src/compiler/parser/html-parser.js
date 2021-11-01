@@ -49,7 +49,10 @@ const encodedAttrWithNewLines = /&(?:lt|gt|quot|amp|#39|#10|#9);/g
 // #5992
 const isIgnoreNewlineTag = makeMap('pre,textarea', true)
 const shouldIgnoreFirstNewline = (tag, html) => tag && isIgnoreNewlineTag(tag) && html[0] === '\n'
-
+/* 
+  decodeAttr 函数是用来解码 html 实体的。它的原理是利用前面的正则 encodedAttrWithNewLines 
+  和 encodedAttr 以及 html 实体与字符一一对应的 decodingMap 对象来实现将 html 实体转为对应的字符
+*/
 function decodeAttr (value, shouldDecodeNewlines) {
   const re = shouldDecodeNewlines ? encodedAttrWithNewLines : encodedAttr
   return value.replace(re, match => decodingMap[match])
@@ -60,6 +63,7 @@ export function parseHTML (html, options) {
   const stack = []  // 存储
   const expectHTML = options.expectHTML
   const isUnaryTag = options.isUnaryTag || no
+  // 能否省略闭合标签的非一元标签
   const canBeLeftOpenTag = options.canBeLeftOpenTag || no
   let index = 0
   let last,   // 存储还未parse的html
@@ -134,9 +138,11 @@ export function parseHTML (html, options) {
       }
 
       let text, rest, next
+      // 类似于"1<2<3"这段代码,
       if (textEnd >= 0) {
         rest = html.slice(textEnd)
         // while 循环的条件保证了只有截取后的字符串不能匹配标签的情况下才会执行
+        // 一直找到能成功匹配到标签的<
         while (
           !endTag.test(rest) &&
           !startTagOpen.test(rest) &&
@@ -228,6 +234,7 @@ export function parseHTML (html, options) {
         <div>    ebd:['>', undefined]
       */
       if (end) {
+        // end[1]有值说明是一元标签
         match.unarySlash = end[1]
         advance(end[0].length)
         match.end = index
@@ -249,7 +256,7 @@ export function parseHTML (html, options) {
       }
     }
     /* unary的值是一个布尔值，为真时代表着标签是一元标签，否则是二元标签
-       isUnaryTag 函数能够判断标准 HTML 中规定的那些一元标签
+       isUnaryTag 函数能够判断标准 HTML 中规定的那些一元标签 || 
        开始标签的结束部分是否使用 '/'，如果有反斜线 '/'，说明这是一个一元标签
     */
     const unary = isUnaryTag(tagName) || !!unarySlash
@@ -264,6 +271,7 @@ export function parseHTML (html, options) {
     for (let i = 0; i < l; i++) {
       const args = match.attrs[i]
       const value = args[3] || args[4] || args[5] || ''
+      // 浏览器怪癖做兼容处理
       const shouldDecodeNewlines = tagName === 'a' && args[1] === 'href'
         ? options.shouldDecodeNewlinesForHref
         : options.shouldDecodeNewlines
@@ -276,7 +284,7 @@ export function parseHTML (html, options) {
         attrs[i].end = args.end
       }
     }
-
+    // 将非一元标签的信息推入stack中
     if (!unary) {
       stack.push({ tag: tagName, lowerCasedTag: tagName.toLowerCase(), attrs: attrs, start: match.start, end: match.end })
       lastTag = tagName
@@ -287,18 +295,21 @@ export function parseHTML (html, options) {
     }
   }
   /*
-    检测是否缺少闭合标签
-    处理 stack 栈中剩余的标签
-    解析 </br> 与 </p> 标签，与浏览器的行为相同
+  parseEndTag方法的三个作用:
+    1.检测是否缺少闭合标签
+    2.处理 stack 栈中剩余的标签
+    3.解析 </br> 与 </p> 标签，与浏览器的行为相同
   */
   function parseEndTag (tagName, start, end) {
     // pos变量用来判断是否有元素缺少闭合标签
     let pos, lowerCasedTagName
+    // 当不传递start,end这两个参数的时候
     if (start == null) start = index
     if (end == null) end = index
 
     // Find the closest opened tag of the same type
     if (tagName) {
+      // 寻找当前解析标签在stack里面的位置
       lowerCasedTagName = tagName.toLowerCase()
       for (pos = stack.length - 1; pos >= 0; pos--) {
         if (stack[pos].lowerCasedTag === lowerCasedTagName) {

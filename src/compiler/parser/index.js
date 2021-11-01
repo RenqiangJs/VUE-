@@ -20,17 +20,24 @@ import {
   pluckModuleFunction,
   getAndRemoveAttrByRegex
 } from '../helpers'
-
+// 主要作用是检测标签属性名是否是监听事件的指令
 export const onRE = /^@|^v-on:/
+/* 
+  主要作用是检测标签属性名是否是指令。所以通过这个正则我们可以知
+  道，在 vue 中所有以 v- 开头的属性都被认为是指令，另外 @ 字符
+  是 v-on 的缩写，: 字符是 v-bind 的缩写
+*/
 export const dirRE = process.env.VBIND_PROP_SHORTHAND
   ? /^v-|^@|^:|^\.|^#/
   : /^v-|^@|^:|^#/
+  // 解析v-for
 export const forAliasRE = /([\s\S]*?)\s+(?:in|of)\s+([\s\S]*)/
 export const forIteratorRE = /,([^,\}\]]*)(?:,([^,\}\]]*))?$/
 const stripParensRE = /^\(|\)$/g
 const dynamicArgRE = /^\[.*\]$/
 
 const argRE = /:(.*)$/
+// 该正则用来匹配以字符 : 或字符串 v-bind: 开头的字符串，主要用来检测一个标签的属性是否是绑定(v-bind)
 export const bindRE = /^:|^\.|^v-bind:/
 const propBindRE = /^\./
 const modifierRE = /\.[^.\]]+(?=[^\]]*$)/g
@@ -81,9 +88,11 @@ export function parse (
   options: CompilerOptions
 ): ASTElement | void {
   warn = options.warn || baseWarn
-
+  // 判断该标签是否为pre标签
   platformIsPreTag = options.isPreTag || no
+  // 判断该是否要使用元素对象原生的 prop 进行绑定
   platformMustUseProp = options.mustUseProp || no
+  // 获取元素标签的命名空间
   platformGetTagNamespace = options.getTagNamespace || no
   const isReservedTag = options.isReservedTag || no
   maybeComponent = (el: ASTElement) => !!(
@@ -97,16 +106,19 @@ export function parse (
   postTransforms = pluckModuleFunction(options.modules, 'postTransformNode')
 
   delimiters = options.delimiters
-
+    // 修正当前正在解析元素的父级
   const stack = []
+  // 告诉编译器是否放弃标签之间的空格
   const preserveWhitespace = options.preserveWhitespace !== false
   const whitespaceOption = options.whitespace
   let root
   let currentParent
+  // 标识当前解析的标签是否在拥有 v-pre 的标签之内
   let inVPre = false
+  // 标识当前正在解析的标签是否在 <pre></pre> 标签之内
   let inPre = false
   let warned = false
-
+// 只打印一次警告信息
   function warnOnce (msg, range) {
     if (!warned) {
       warned = true
@@ -122,6 +134,7 @@ export function parse (
     // tree management
     if (!stack.length && element !== root) {
       // allow root elements with v-if, v-else-if and v-else
+      // 根元素v-if必须要与v-elseif ,v-else一同使用,防止根元素不存在的情况
       if (root.if && (element.elseif || element.else)) {
         if (process.env.NODE_ENV !== 'production') {
           checkRootConstraints(element)
@@ -139,14 +152,25 @@ export function parse (
         )
       }
     }
+    // 存在父级元素并且当前元素不是禁用的元素
     if (currentParent && !element.forbidden) {
       if (element.elseif || element.else) {
+        /* 
+          如果一个标签使用 v-else-if 或 v-else 指令，那么该元素的描述
+          对象实际上会被添加到对应的 v-if 元素描述对象的 ifConditions 数组中，而非作为一个独立的子节点
+        */
         processIfConditions(element, currentParent)
       } else {
         if (element.slotScope) {
           // scoped slot
           // keep it in the children list so that v-else(-if) conditions can
           // find it as the prev node.
+          /* 
+            如果一个元素使用了 slot-scope 特性，那么该元素的描述对象会被添加到父级元素的 scopedSlots 对
+            象下，也就是说使用了 slot-scope 特性的元素与使用了 v-else-if 或 v-else 指令的元素一样，他
+            们都不会作为父级元素的子节点，对于使用了 slot-scope 特性的元素来讲它们将被添加到父级元素
+            描述对象的 scopedSlots 对象下。
+          */
           const name = element.slotTarget || '"default"'
           ;(currentParent.scopedSlots || (currentParent.scopedSlots = {}))[name] = element
         }
@@ -169,6 +193,10 @@ export function parse (
       inPre = false
     }
     // apply post-transforms
+    /* 
+      但实际上 postTransforms 是一个空数组，因为目前还没有任何后置处理的钩子函数。这里
+      只是暂时提供一个用于后置处理的出口，当有需要的时候可以使用
+    */
     for (let i = 0; i < postTransforms.length; i++) {
       postTransforms[i](element, options)
     }
@@ -204,7 +232,7 @@ export function parse (
       )
     }
   }
-
+  // 词法分析,执行相应的勾子函数
   parseHTML(template, {
     warn,
     expectHTML: options.expectHTML,
@@ -252,7 +280,7 @@ export function parse (
           }
         })
       }
-
+      // 在vue模版中style,script(type="text/x-template"的script除外)都是禁用标签
       if (isForbiddenTag(element) && !isServerRendering()) {
         element.forbidden = true
         process.env.NODE_ENV !== 'production' && warn(
@@ -264,6 +292,7 @@ export function parse (
       }
 
       // apply pre-transforms
+      // 前置转换(或前置处理)
       for (let i = 0; i < preTransforms.length; i++) {
         element = preTransforms[i](element, options) || element
       }
@@ -274,29 +303,40 @@ export function parse (
           inVPre = true
         }
       }
+      /* 295~300
+        可以看到这段代码开始大量调用 process* 系列的函数，这其实就是在对当
+        前元素描述对象做额外的处理，使得该元素描述对象能更好的描述一个标签。简单点说就
+        是在元素描述对象上添加各种各样的具有标识作用的属性，就比如之前遇到的 ns 属
+        性和 forbidden 属性，它们都能够对标签起到描述作用
+      */
+    //  当前解析环境是否在<pre>标签内
       if (platformIsPreTag(element.tag)) {
         inPre = true
       }
+      // if 如果当前元素的解析处于 v-pre 环境内  else-if 解析没处于v-pre环境内
       if (inVPre) {
         processRawAttrs(element)
       } else if (!element.processed) {
         // structural directives
         processFor(element)
+        // 如果发现元素的属性中有 v-if 或 v-else-if 或 v-else，则会在元素描述对象上添加相应的属性作为标识
         processIf(element)
+        // 如果发现有使用v-once指令,element.once = true
         processOnce(element)
       }
 
       if (!root) {
         root = element
+        // 检查root.tag是否合法,根元素有没有时候v-for指令
         if (process.env.NODE_ENV !== 'production') {
           checkRootConstraints(root)
         }
       }
-
+        // 当一个元素为非一元标签时,会设置currentParent为该元素的描述对象
       if (!unary) {
         currentParent = element
         stack.push(element)
-      } else {
+      } else {  // 走else说明当前元素为自闭合标签
         closeElement(element)
       }
     },
@@ -305,6 +345,10 @@ export function parse (
       const element = stack[stack.length - 1]
       // pop stack
       stack.length -= 1
+      /* 
+        我们需要每当遇到一个非一元标签的结束标签时，都将 currentParent 变量的值回退
+        到之前的元素描述对象，这样就能够保证当前正在解析的标签拥有正确的父级
+      */
       currentParent = stack[stack.length - 1]
       if (process.env.NODE_ENV !== 'production' && options.outputSourceRange) {
         element.end = end
@@ -315,11 +359,13 @@ export function parse (
     chars (text: string, start: number, end: number) {
       if (!currentParent) {
         if (process.env.NODE_ENV !== 'production') {
+          // 整个模版与文本节点完全一致 <template>我是文本节点</template>
           if (text === template) {
             warnOnce(
               'Component template requires a root element, rather than just text.',
               { start }
             )
+          // <template><div>根元素内的文本节点</div>根元素外的文本节点</template>
           } else if ((text = text.trim())) {
             warnOnce(
               `text "${text}" outside root element will be ignored.`,
@@ -331,6 +377,7 @@ export function parse (
       }
       // IE textarea placeholder bug
       /* istanbul ignore if */
+      // IE浏览器<textarea> 标签的 placeholder 属性的属性值被设置成了 <textarea> 的真实文本内容
       if (isIE &&
         currentParent.tag === 'textarea' &&
         currentParent.attrsMap.placeholder === text
@@ -339,6 +386,7 @@ export function parse (
       }
       const children = currentParent.children
       if (inPre || text.trim()) {
+        // 处于文本节点里面的内容不需要解码操作
         text = isTextTag(currentParent) ? text : decodeHTMLCached(text)
       } else if (!children.length) {
         // remove the whitespace-only node right after an opening tag
@@ -361,6 +409,7 @@ export function parse (
         }
         let res
         let child: ?ASTNode
+        // parseText 用来识别一段文本节点内容中的普通文本和字面量表达式并把他们按顺序拼接起来。
         if (!inVPre && text !== ' ' && (res = parseText(text, delimiters))) {
           child = {
             type: 2,
@@ -400,23 +449,28 @@ export function parse (
       }
     }
   })
+  // 返回最终的AST树
   return root
 }
 
 function processPre (el) {
+  // 获取给定属性的值之外，还会将该属性从 attrsList 数组中移除，并可以选择性地将该属性从 attrsMap 对象中移除
+  // 在这里由于使用 v-pre 指令时不需要指定属性值，所以使用 getAndRemoveAttr 函数获取到的属性值为空字符串，由于 '' != null 成立
   if (getAndRemoveAttr(el, 'v-pre') != null) {
     el.pre = true
   }
 }
-
+// processRawAttrs 函数的执行说明当前解析必然处于 v-pre 环境，要么是使用 v-pre 指令的标签自身，要么就是其子节点
 function processRawAttrs (el) {
   const list = el.attrsList
   const len = list.length
   if (len) {
     const attrs: Array<ASTAttr> = el.attrs = new Array(len)
+    // element.attrs 与 element.attrsList结构相同,不同的是element.attrs的value都是经过JSON.stringify()处理的
     for (let i = 0; i < len; i++) {
       attrs[i] = {
         name: list[i].name,
+        // JSON.stringify保证了最终生成的代码中 el.attrsList[i].value 属性始终被作为普通的字符串处理
         value: JSON.stringify(list[i].value)
       }
       if (list[i].start != null) {
@@ -486,6 +540,7 @@ function processRef (el) {
   const ref = getBindingAttr(el, 'ref')
   if (ref) {
     el.ref = ref
+    // 检查ref属性是否在v-for指令内
     el.refInFor = checkInFor(el)
   }
 }
@@ -513,11 +568,26 @@ type ForParseResult = {
 };
 
 export function parseFor (exp: string): ?ForParseResult {
+  /* 
+    const inMatch = [
+      'obj in list',
+      'obj',
+      'list'
+    ]
+  */
   const inMatch = exp.match(forAliasRE)
   if (!inMatch) return
   const res = {}
   res.for = inMatch[2].trim()
+  // stripParensRE去掉左右两边的()
   const alias = inMatch[1].trim().replace(stripParensRE, '')
+  /* 
+  iteratorMatch:
+    1、如果 alias 字符串的值为 'obj'，则匹配结果 iteratorMatch 常量的值为 null
+    2、如果 alias 字符串的值为 'obj, index'，则匹配结果 iteratorMatch 常量的值是一个包含两个元素的数组：[', index', 'index']
+    3、如果 alias 字符串的值为 'obj, key, index'，则匹配结果 iteratorMatch 常量的值是一个
+      包含三个元素的数组：[', key, index', 'key'， 'index']
+  */
   const iteratorMatch = alias.match(forIteratorRE)
   if (iteratorMatch) {
     res.alias = alias.replace(forIteratorRE, '').trim()
@@ -533,6 +603,7 @@ export function parseFor (exp: string): ?ForParseResult {
 
 function processIf (el) {
   const exp = getAndRemoveAttr(el, 'v-if')
+  // 如果有v-if属性,并且有值
   if (exp) {
     el.if = exp
     addIfCondition(el, {
@@ -551,6 +622,7 @@ function processIf (el) {
 }
 
 function processIfConditions (el, parent) {
+  // findPrevElement 函数通过 while 循环从后向前遍历父级的子节点，并找到最后一个元素节点
   const prev = findPrevElement(parent.children)
   if (prev && prev.if) {
     addIfCondition(prev, {
@@ -769,15 +841,22 @@ function processAttrs (el) {
       // mark element as dynamic
       el.hasBindings = true
       // modifiers
+      // 获取指令的修饰符
       modifiers = parseModifiers(name.replace(dirRE, ''))
       // support .foo shorthand syntax for the .prop modifier
       if (process.env.VBIND_PROP_SHORTHAND && propBindRE.test(name)) {
         (modifiers || (modifiers = {})).prop = true
         name = `.` + name.slice(1).replace(modifierRE, '')
       } else if (modifiers) {
+        // 将修饰符从name中移除
         name = name.replace(modifierRE, '')
       }
+      /* 
+        1、任何绑定的属性，最终要么会被添加到元素描述对象的 el.attrs 数组中，要么就被添加到元素描述对象的 el.props 数组中。
+        2、对于使用了 .sync 修饰符的绑定属性，还会在元素描述对象的 el.events 对象中添加名字为 'update:${驼峰化的属性名}' 的事件。
+      */
       if (bindRE.test(name)) { // v-bind
+        // 将v-bind:或者:去掉,由于前面的if判断已经去掉了修饰符,所以这里的name已经是纯属性名了
         name = name.replace(bindRE, '')
         value = parseFilters(value)
         isDynamic = dynamicArgRE.test(name)
@@ -792,8 +871,10 @@ function processAttrs (el) {
             `The value for a v-bind expression cannot be empty. Found in "v-bind:${name}"`
           )
         }
+        // 处理v-bind的修饰符,没有的话这段代码将被忽略
         if (modifiers) {
           if (modifiers.prop && !isDynamic) {
+            // 驼峰化属性名
             name = camelize(name)
             if (name === 'innerHtml') name = 'innerHTML'
           }
@@ -824,6 +905,7 @@ function processAttrs (el) {
                 )
               }
             } else {
+              // :some-prop.sync <==等价于==> :some-prop + @update:someProp
               // handler w/ dynamic event name
               addHandler(
                 el,
@@ -846,6 +928,7 @@ function processAttrs (el) {
           addAttr(el, name, value, list[i], isDynamic)
         }
       } else if (onRE.test(name)) { // v-on
+        // 去掉@或者v-on:字符串
         name = name.replace(onRE, '')
         isDynamic = dynamicArgRE.test(name)
         if (isDynamic) {
@@ -853,12 +936,18 @@ function processAttrs (el) {
         }
         addHandler(el, name, value, modifiers, false, warn, list[i], isDynamic)
       } else { // normal directives
-        name = name.replace(dirRE, '')
+      /* 
+       else里面的代码主要处理 v-text、v-html、v-show、v-cloak 以及 v-model,自定义指令
+      */ 
+        name = name.replace(dirRE, '')  // 去掉属性名称中的 'v-' 或 ':' 或 '@' 等字符
         // parse arg
+        // 如果是自指令还可能带有参数,v-custom:arg,argMatch数组就是[':arg', 'arg']
         const argMatch = name.match(argRE)
         let arg = argMatch && argMatch[1]
         isDynamic = false
+        // 如果指令包含参数
         if (arg) {
+          // 将参数从name中移除,如果name=custom:arg,经过处理之后name=custom
           name = name.slice(0, -(arg.length + 1))
           if (dynamicArgRE.test(arg)) {
             arg = arg.slice(1, -1)
@@ -871,8 +960,12 @@ function processAttrs (el) {
         }
       }
     } else {
+      /* 
+        非指令属性比如 id、width 等,但不包含class,class,style已经在processElement方法里面transforms
+      */
       // literal attribute
       if (process.env.NODE_ENV !== 'production') {
+        // 非绑定属性使用了字面量表达式
         const res = parseText(value, delimiters)
         if (res) {
           warn(
@@ -887,6 +980,7 @@ function processAttrs (el) {
       addAttr(el, name, JSON.stringify(value), list[i])
       // #6887 firefox doesn't update muted state if set via attribute
       // even immediately after element creation
+      // 火狐浏览器video标签无法使用setAttribute添加muted属性的 bug
       if (!el.component &&
           name === 'muted' &&
           platformMustUseProp(el.tag, el.attrsMap.type, name)) {
@@ -908,11 +1002,18 @@ function checkInFor (el: ASTElement): boolean {
 }
 
 function parseModifiers (name: string): Object | void {
+  // 指令修饰符组成的数组
+  /* 
+    'v-bind:some-prop.sync'
+    [.sync]
+  */
   const match = name.match(modifierRE)
   if (match) {
     const ret = {}
+    // 去掉.
     match.forEach(m => { ret[m.slice(1)] = true })
     return ret
+    // ret = {sync: true}
   }
 }
 
@@ -949,10 +1050,12 @@ const ieNSBug = /^xmlns:NS\d+/
 const ieNSPrefix = /^NS\d+:/
 
 /* istanbul ignore next */
+// 处理IE浏览器渲染svg元素的bug
 function guardIESVGBug (attrs) {
   const res = []
   for (let i = 0; i < attrs.length; i++) {
     const attr = attrs[i]
+    // 不满足ieNSBug正则属性名的,都会尝试使用 ieNSPrefix 正则去匹配该属性名并将匹配到的字符替换为空字符串
     if (!ieNSBug.test(attr.name)) {
       attr.name = attr.name.replace(ieNSPrefix, '')
       res.push(attr)

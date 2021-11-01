@@ -1,4 +1,4 @@
-/* @flow */
+ASSET_TYPES/* @flow */
 
 import { baseOptions } from './options'
 import { createCompiler } from 'compiler/index'

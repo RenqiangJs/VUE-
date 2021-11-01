@@ -44,7 +44,7 @@ export function parseText (
   }
   if (lastIndex < text.length) {
     rawTokens.push(tokenValue = text.slice(lastIndex))
-    tokens.push(JSON.stringify(tokenValue))
+    tokens.push(JSON.stringify(tokenValue))    // tokens是给weex用的
   }
   return {
     expression: tokens.join('+'),

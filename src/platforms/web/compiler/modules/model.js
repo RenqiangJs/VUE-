@@ -22,7 +22,11 @@ import {
   addIfCondition,
   createASTElement
 } from 'compiler/parser/index'
-
+// preTransformNode 函数要预处理的是使用了 v-model 属性并且使用了绑定的 type 属性的 input 标签
+/* 
+  将一个拥有绑定类型和 v-model 指令的 input 标签扩展为三个 input 标签，这个三
+  个 input 标签分别是复选按钮(checkbox)、单选按钮(radio)和其他 input 标签
+*/
 function preTransformNode (el: ASTElement, options: CompilerOptions) {
   if (el.tag === 'input') {
     const map = el.attrsMap

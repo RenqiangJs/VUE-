@@ -65,7 +65,9 @@ function prependModifierMarker (symbol: string, name: string, dynamic?: boolean)
     ? `_p(${name},"${symbol}")`
     : symbol + name // mark the event as captured
 }
-
+/* 
+  addHandler 函数对于元素描述对象的影响主要是在元素描述对象上添加了 el.events 属性和 el.nativeEvents 属性。
+*/
 export function addHandler (
   el: ASTElement,
   name: string,
@@ -109,7 +111,11 @@ export function addHandler (
   }
 
   // check capture modifier
+  /* 
+    delete是为了删除那些不希望被遍历的属性
+  */
   if (modifiers.capture) {
+    // modifiers.capture 选项移除，紧接着在原始事件名称之前添加一个字符 !
     delete modifiers.capture
     name = prependModifierMarker('!', name, dynamic)
   }
@@ -163,15 +169,19 @@ export function getBindingAttr (
   name: string,
   getStatic?: boolean
 ): ?string {
+  // 用不同的方式获取key属性的值,开发者可能写成 :key ,v-bind:key
   const dynamicValue =
     getAndRemoveAttr(el, ':' + name) ||
     getAndRemoveAttr(el, 'v-bind:' + name)
   if (dynamicValue != null) {
     return parseFilters(dynamicValue)
+    // 第三个参数不全等于false
   } else if (getStatic !== false) {
+    // 获取非绑定属性的值(key也可以是非绑定式的 key="exp")
     const staticValue = getAndRemoveAttr(el, name)
     if (staticValue != null) {
-      return JSON.stringify(staticValue)
+      // JSON.stringify确保获取的属性值作为字符串处理,而非变量或者表达式
+      return JSON.stringify(staticValue)  
     }
   }
 }

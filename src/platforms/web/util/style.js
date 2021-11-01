@@ -4,6 +4,7 @@ import { cached, extend, toObject } from 'shared/util'
 
 export const parseStyleText = cached(function (cssText) {
   const res = {}
+  // 全局匹配字符串中的分号(;)，但是该分号必须满足一个条件，即 该分号的后面不能跟左圆括号())，除非有一个相应的右圆括号(()存在
   const listDelimiter = /;(?![^(]*\))/g
   const propertyDelimiter = /:(.+)/
   cssText.split(listDelimiter).forEach(function (item) {

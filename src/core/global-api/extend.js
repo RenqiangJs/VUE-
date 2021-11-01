@@ -27,6 +27,7 @@ export function initExtend (Vue: GlobalAPI) {
 
     const name = extendOptions.name || Super.options.name
     if (process.env.NODE_ENV !== 'production' && name) {
+      // 验证组件名字的合法性
       validateComponentName(name)
     }
 
