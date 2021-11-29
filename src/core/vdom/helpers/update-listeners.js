@@ -51,7 +51,7 @@ export function createFnInvoker (fns: Function | Array<Function>, vm: ?Component
 }
 
 export function updateListeners (
-  on: Object,
+  on: Object,  // 父级
   oldOn: Object,
   add: Function,
   remove: Function,

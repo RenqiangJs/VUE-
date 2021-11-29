@@ -59,7 +59,7 @@ export function createCompileToFunctionFn (compile: Function): Function {
       return cache[key]
     }
 
-    // compile 是闭包引用 createCompileToFunctionFn(compile)透传的实参
+    // 闭包引用 createCompileToFunctionFn(compile)透传的实参
     const compiled = compile(template, options)
 
     // check compilation errors/tips

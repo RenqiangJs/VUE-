@@ -58,8 +58,11 @@ export function setCurrentRenderingInstance (vm: Component) {
   currentRenderingInstance = vm
 }
 
-export function renderMixin (Vue: Class<Component>) {
+
+export function (Vue: Class<Component>) {
   // install runtime convenience helpers
+// target._o target._n target._s target._ target._t target._q target._i
+// target._m target._f target._k target._b target._v target._e target._u target._g target._d target._p
   installRenderHelpers(Vue.prototype)
 
   Vue.prototype.$nextTick = function (fn: Function) {
